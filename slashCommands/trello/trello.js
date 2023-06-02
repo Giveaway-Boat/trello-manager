@@ -84,7 +84,7 @@ module.exports = {
             if (error) {
                 console.log('Could not add card:', error);
             } else {
-                interaction.reply({ content: `Added card with the name of \`${interaction.options.getString('name')}\` to list ${list}` });
+                interaction.reply({ content: `Added card with the name of \`${interaction.options.getString('name')}\` to list \`${listName}\`` });
             }
         });
     },
