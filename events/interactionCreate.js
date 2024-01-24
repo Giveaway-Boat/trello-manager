@@ -1,8 +1,31 @@
 const { InteractionType, PermissionsBitField, EmbedBuilder } = require('discord.js');
+require('dotenv').config();
+const superagent = require('superagent');
 
 module.exports = {
     name: 'interactionCreate',
     run: async (client, interaction) => {
+        if (interaction.isAutocomplete()) {
+            if (interaction.commandName === 'trello') {
+                const focusedValue = interaction.options.getFocused();
+                const lists = await superagent
+                    .get(`https://api.trello.com/1/boards/RnkO6fHj/lists?key=${process.env.TRELLO_API_KEY}&token=${process.env.TRELLO_TOKEN}`)
+                    .then((res) => res.body)
+                    .catch((err) => console.error('Error in get lists', err));
+
+                let choices;
+                const obj = {};
+
+                for (const data of lists) {
+                    obj[data.name] = data.name.toLowerCase().replaceAll(' ', '_');
+                }
+
+                choices = Object.keys(obj).map((key) => ({ Value: obj[key], Name: key }));
+
+                const filtered = choices.filter((choices) => choices.Name.toLowerCase().includes(focusedValue.toLowerCase()));
+                await interaction.respond(filtered.map((choices) => ({ name: choices.Name, value: choices.Value.toLowerCase() })).slice(0, 25));
+            }
+        }
         if (interaction.type === InteractionType.ApplicationCommand) {
             const command = client.slashCommands.get(interaction.commandName);
             if (!command) return;

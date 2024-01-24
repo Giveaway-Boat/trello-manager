@@ -1,6 +1,8 @@
 const { ApplicationCommandOptionType } = require('discord.js');
 require('dotenv').config();
 const Trello = require('trello');
+const config = require('../../config.js');
+const superagent = require('superagent');
 
 module.exports = {
     name: 'trello',
@@ -11,36 +13,7 @@ module.exports = {
             description: 'List to add this to',
             required: true,
             type: ApplicationCommandOptionType.String,
-            choices: [
-                {
-                    name: 'Next Update',
-                    value: 'next',
-                },
-                {
-                    name: 'QOL Code Changes',
-                    value: 'qol',
-                },
-                {
-                    name: 'Daily Tasks',
-                    value: 'daily',
-                },
-                {
-                    name: 'Bugs',
-                    value: 'bugs',
-                },
-                {
-                    name: 'Planned',
-                    value: 'planned',
-                },
-                {
-                    name: 'Website Update',
-                    value: 'website',
-                },
-                {
-                    name: 'Suggestions',
-                    value: 'suggestions',
-                },
-            ],
+            autocomplete: true,
         },
         {
             name: 'name',
@@ -48,43 +21,30 @@ module.exports = {
             required: true,
             type: ApplicationCommandOptionType.String,
         },
+        {
+            name: 'description',
+            description: 'Description of card',
+            required: false,
+            type: ApplicationCommandOptionType.String,
+        },
     ],
     run: async (client, interaction) => {
-        let listId;
+        if (!config.owners.includes(interaction.user.id)) return;
         const list = interaction.options.getString('list');
-        let listName;
-        if (list === 'next') {
-            listId = '63fcc471e79ff45703ffc951';
-            listName = 'Next Update';
-        } else if (list === 'qol') {
-            listId = '641627ac737295cee4ce8396';
-            listName = 'QOL Code Changes';
-        } else if (list === 'daily') {
-            listId = '63b91ea8a35e16006769cd74';
-            listName = 'Daily Tasks';
-        } else if (list === 'bugs') {
-            listId = '63b91ea8a35e16006769cd76';
-            listName = 'Bugs';
-        } else if (list === 'planned') {
-            listId = '63b91ea8a35e16006769cd75';
-            listName = 'Planned';
-        } else if (list === 'website') {
-            listId = '6404b222ac9ae8d30b0e20cc';
-            listName = 'Website Updates';
-        } else if (list === 'suggestions') {
-            listId = '63b91ec5b23676006e5e8278';
-            listName = 'Suggestions';
-        } else {
-            return interaction.reply({ content: `An unknown error occured`, ephemeral: true });
-        }
+        const lists = await superagent
+            .get(`https://api.trello.com/1/boards/RnkO6fHj/lists?key=${process.env.TRELLO_API_KEY}&token=${process.env.TRELLO_TOKEN}`)
+            .then((res) => res.body)
+            .catch((err) => console.error('Error in get lists', err));
+
+        let listObj = lists.find((data) => data.name.toLowerCase().replaceAll('_', ' ') == list);
 
         const trello = new Trello(process.env.TRELLO_API_KEY, process.env.TRELLO_TOKEN);
 
-        trello.addCard(interaction.options.getString('name'), null, listId, function (error, trelloCard) {
+        trello.addCard(interaction.options.getString('name'), interaction.options.getString('description') ?? null, listObj.id, function (error, trelloCard) {
             if (error) {
-                console.log('Could not add card:', error);
+                console.log(`Could not add card: ${trelloCard}`, error);
             } else {
-                interaction.reply({ content: `Added card with the name of \`${interaction.options.getString('name')}\` to list \`${listName}\`` });
+                interaction.reply({ content: `Added card with the name of \`${interaction.options.getString('name')}\` to list \`${listObj.name}\` in Giveaway Boat Trello` });
             }
         });
     },
