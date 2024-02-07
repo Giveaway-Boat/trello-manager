@@ -30,13 +30,12 @@ module.exports = {
     ],
     run: async (client, interaction) => {
         if (!config.owners.includes(interaction.user.id)) return;
-        const list = interaction.options.getString('list');
         const lists = await superagent
             .get(`https://api.trello.com/1/boards/RnkO6fHj/lists?key=${process.env.TRELLO_API_KEY}&token=${process.env.TRELLO_TOKEN}`)
             .then((res) => res.body)
             .catch((err) => console.error('Error in get lists', err));
 
-        let listObj = lists.find((data) => data.name.toLowerCase().replaceAll('_', ' ') == list);
+        let listObj = lists.find((data) => data.name.toLowerCase().replaceAll(' ', '_') === interaction.options.getString('list'));
 
         const trello = new Trello(process.env.TRELLO_API_KEY, process.env.TRELLO_TOKEN);
 
